@@ -10,7 +10,7 @@ Commodetto integrates with the [XS6](https://github.com/Kinoma/kinomajs/tree/mas
 
 Comprehensive reference documentation is included in this repository:
 
-* [Commodetto documentation](commodetto/docs/commodetto.md)
-* [Poco documentation](commodetto/docs/poco.md)
+* [Commodetto documentation](commodetto/docs/Commodetto.md)
+* [Poco documentation](commodetto/docs/Poco.md)
 
 Commodetto is provided under the [Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/).
