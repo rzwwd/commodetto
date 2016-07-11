@@ -34,22 +34,29 @@ void xs_BufferOut_send(xsMachine *the)
 	uint32_t *header;
 	int offsetIn, count, offsetOut;
 
-	if (argc >= 1)
+	xsVars(1);
+
+	if (argc > 1)
 		offsetIn = xsToInteger(xsArg(1));
 	else
 		offsetIn = 0;
 
-	if (argc >= 2)
+	if (argc > 2)
 		count = xsToInteger(xsArg(2));
-	else
-		count = xsGetArrayBufferLength(xsArg(0)) - offsetIn;
 
- 	if (xsIsInstanceOf(xsArg(0), xsArrayBufferPrototype))
+ 	if (xsIsInstanceOf(xsArg(0), xsArrayBufferPrototype)) {
 		src = xsToArrayBuffer(xsArg(0));
-	else
+		if (argc <= 2)
+			count = xsGetArrayBufferLength(xsArg(0)) - offsetIn;
+	}
+	else {
 		src = xsGetHostData(xsArg(0));
+		if (argc <= 2) {
+			xsGet(xsVar(0), xsArg(0), xsID("byteLength"));
+			count = xsToInteger(xsVar(0)) - offsetIn;
+		}
+	}
 
-	xsVars(1);
 	xsGet(xsVar(0), xsThis, ID(buffer));
 	header = xsToArrayBuffer(xsVar(0));
 	dst = (char *)header;
