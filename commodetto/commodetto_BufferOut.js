@@ -19,16 +19,36 @@ const header = 16;			// number of bytes preceeding pixels
 
 export default class BufferOut extends PixelsOut {
 	constructor(dictionary) {
-		if (("rgb565le" != dictionary.pixelFormat) && ("rgb565be" != dictionary.pixelFormat))
-			throw new Error("invalid display settings");
-
 		super(dictionary);
+
+		let format = Bitmap.Raw;
+		switch (dictionary.pixelFormat) {
+			case "rgb565le":
+			case "rgb565be":
+				this.depth = 16;
+				break;
+
+			case "g4":
+				this.depth = 4;
+				format = Bitmap.Gray;
+				break;
+
+			case "m1":
+				this.depth = 1;
+				format = Bitmap.Monochrome;
+				break;
+
+			default:
+				throw new Error("unsupported buffer pixel fornat");
+				break;
+
+		}
 
 		// initialize array buffer for use as Bitmap (ArrayBuffer + width, height, and offset properties)
 		this.buffer = new ArrayBuffer(this.pixelsToBytes(this.width * this.height) + header);
-		this.bits = new Bitmap(this.width, this.height, Bitmap.Raw, this.buffer, header);
+		this.bits = new Bitmap(this.width, this.height, format, this.buffer, header);
 
-		this.words = new Uint32Array(this.buffer);
+		this.words = new Uint32Array(this.buffer, 0, header);
 	}
 	begin(x, y, width, height) {
 		let words = this.words;
@@ -45,7 +65,7 @@ export default class BufferOut extends PixelsOut {
 		// empty implementation overrides PixelOut.continue which throws
 	}
 	pixelsToBytes(count) {
-		return count * 2;		//@@ vary on pixelFormat
+		return ((count * this.depth) + 7) >> 3;
 	}
 	get bitmap() {
 		return this.bits;
