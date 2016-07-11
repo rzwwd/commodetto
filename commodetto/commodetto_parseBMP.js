@@ -24,7 +24,7 @@ import Bitmap from "Bitmap";
 export default function parseBMP(buffer, format = Bitmap.Raw) {
 	let bytes = new Uint8Array(buffer);
 
-	if ((bytes[0] != "B".charCodeAt(0)) || (bytes[1] != "M".charCodeAt(0)))
+	if ((66 != bytes[0]) || (77 != bytes[1]))		// "BM"
 		throw new Error("invalid BMP");
 
 	let offset = bytes[10] | (bytes[11] << 8) | (bytes[12] << 16)| (bytes[13] << 24);
