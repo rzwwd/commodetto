@@ -1,7 +1,7 @@
 # Commodetto
 Copyright 2016 Moddable Tech, Inc.
 
-Revised: June 13, 2016
+Revised: July 1, 2016
 
 Commodetto is a graphics library designed to bring modern user interface rendering to devices powered by a resource constrained micro-controller. For many applications, only a few kilobytes of RAM are needed by Commodetto, including the assets for rendering the user interface.
 
@@ -18,7 +18,7 @@ The Poco rendering engine contains only the most essential rendering operations:
 
 Asset loaders prepare graphical assets, such as photos, user interface elements, and fonts, for rendering. Commodetto includes asset loaders for BMP images, JPEG photos, NFNT fonts, and BMFont fonts. Additional asset loader modules may be added. The asset loaders allow many types of assets to be rendered directly from flash storage (or ROM) without having to be loaded into RAM.
 
-Pixel outputs deliver rendered pixels to their destination. Commodetto includes modules to output to in-memory bitmaps and files. Modules may be added to send the pixels to a display over the transports supported by the host device, including SPI, I2C, serial, and memory mapped port.
+Pixel outputs deliver rendered pixels to their destination. Commodetto includes modules to output to files and in-memory bitmaps. Modules may be added to send the pixels to a display over the transports supported by the host device, including SPI, I2C, serial, and memory mapped port.
 
 ### Native data types
 
@@ -361,6 +361,8 @@ let bitmap = offscreen.bitmap;
 
 `BufferOut` implements the optional `continue` function of `PixelsOut`.
 
+> **Note**: `BufferOut` supports "rgb565le" and "rgb565be" 16-bit pixels, "g4" 4-bit pixels, and "m1" 1-bit pixels.
+
 ### Properties
 
 #### bitmap
@@ -369,9 +371,11 @@ The `bitmap` property of a `BufferOut` returns a `Bitmap` instance to access the
 
 ## BMPOut
 
-`BMPOut` is a subclass of `PixelsOut` that receives pixels and writes them in a BMP file with 16 bit rgb565 pixels. The `BMPOut` implementation writes pixels to the file incrementally, so it can create files larger than available free memory.
+`BMPOut` is a subclass of `PixelsOut` that receives pixels and writes them in a BMP file with 16-bit color "rgb565le" pixels or 4-bit gray "g4" pixels. The `BMPOut` implementation writes pixels to the file incrementally, so it can create files larger than available free memory.
 
 `BMPOut` adds the `path` property to the constructor's dictionary, is a string containing the full path to the output BMP file.
+
+> **Note**: The width of the BMP file must be a multiple of two for 16-bit pixels and a multiple of eight for 4-bit pixels.
 
 ## RLEOut
 
@@ -492,7 +496,7 @@ Using a renderer it is straightforward to incrementally send a JPEG image to a d
 
 [NFNT](http://mirror.informatimago.com/next/developer.apple.com/documentation/mac/Text/Text-250.html#MARKER-9-414) is the bitmap font format used in the original Macintosh computer (note: NFNT is a small update to the original FONT resource). NFNT fonts are 1-bit glyphs with compact metrics tables, making them easy to fit into the most constrained of devices. An NFNT may be as small as 3 KB. The design of many NFNT fonts is beautiful, with carefully hand-tuned pixels.
 
-To use NFNT in Commodetto the NFNT resource must be extracted to a file. Several tools to do this extraction including [rezycle](https://itunes.apple.com/us/app/rezycle/id485082834?mt=12), which is available in the Mac App Store.
+To use NFNT in Commodetto the NFNT resource must be extracted to a file. Several tools do this extraction including [rezycle](https://itunes.apple.com/us/app/rezycle/id485082834?mt=12), which is available in the Mac App Store.
 
 The `parseNFNT` function prepares an NFNT resource for measuring and drawing text with a `Render` object.
 
@@ -503,7 +507,7 @@ let chicagoResource = File.Map("/k1/chicago_12.nfnt");
 let chicagoFont = parseNFNT(chicagoResource);
 ```
 
-The font object returned by `parseNFNT` contains the information required by a Render object, including the monochrome bitmap containing the glyphs. The glyph bitmap may be accessed directly:
+The font object returned by `parseNFNT` contains the information required by a `Render` object, including the monochrome bitmap containing the glyphs. The glyph bitmap may be accessed directly:
 
 ```javascript
 let chicagoBitmap = chicagoFont.bitmap;
