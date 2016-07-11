@@ -19,10 +19,22 @@ import File from "file";
 
 export default class BMPOut extends PixelsOut {
 	constructor(dictionary) {
-		if (("rgb565le" != dictionary.pixelFormat))
-			throw new Error("invalid display settings");
-
 		super(dictionary);
+
+		switch (dictionary.pixelFormat) {
+			case "rgb565le":
+				this.depth = 16;
+				break;
+
+			case "g4":
+				this.depth = 4;
+				break;
+
+			default:
+				throw new Error("unsupported BMP pixel fornat");
+				break;
+
+		}
 
 		this.file = new File(dictionary.path, 1);
 	}
@@ -32,38 +44,70 @@ export default class BMPOut extends PixelsOut {
 		this.file.length = 0;
 		this.file.position = 0;
 
-		// 0x36 byte header
-		this.file.write("BM");						// imageFileType
-		this.write32((rowBytes * height) + 0x36);	// fileSize
-		this.write16(0);							// reserved1
-		this.write16(0);							// reserved2
-		this.write32(0x36);							// imageDataOffset
+		if (16 == this.depth) {
+			if (width % 2)
+				throw new Error("width must be multiple of 2");
 
-		this.write32(0x28);							// biSize
-		this.write32(width);						// biWidth
-		this.write32(-height);						// biHeight (negative, because we write top-to-bottom)
-		this.write16(1);							// biPlanes
-		this.write16(16);							// biBitCount
-		this.write32(0);							// biCompression
-		this.write32((rowBytes * height) + 2);		// biSizeImage
-		this.write32(0x0b12);						// biXPelsPerMeter
-		this.write32(0x0b12);						// biYPelsPerMeter
-		this.write32(0);							// biClrUsed
-		this.write32(0);							// biClrImportant
+			// 0x46 byte header
+			this.file.write("BM");						// imageFileType
+			this.write32((rowBytes * height) + 0x46);	// fileSize
+			this.write16(0);							// reserved1
+			this.write16(0);							// reserved2
+			this.write32(0x46);							// imageDataOffset
+
+			this.write32(0x38);							// biSize
+			this.write32(width);						// biWidth
+			this.write32(-height);						// biHeight (negative, because we write top-to-bottom)
+			this.write16(1);							// biPlanes
+			this.write16(16);							// biBitCount
+			this.write32(3);							// biCompression (3 == 565 pixels (see mask below), 0 == 555 pixels)
+			this.write32((rowBytes * height) + 2);		// biSizeImage
+			this.write32(0x0b12);						// biXPelsPerMeter
+			this.write32(0x0b12);						// biYPelsPerMeter
+			this.write32(0);							// biClrUsed
+			this.write32(0);							// biClrImportant
+
+			this.file.write(0x00, 0xF8, 0x00, 0x00, 0xE0, 0x07, 0x00, 0x00, 0x1F, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);	// masks for 565 pixels
+		}
+		else if (4 == this.depth) {
+			if (width % 8)
+				throw new Error("width must be multiple of 8");
+
+			// 0x76 byte header
+			this.file.write("BM");						// imageFileType
+			this.write32((rowBytes * height) + 0x76);	// fileSize
+			this.write16(0);							// reserved1
+			this.write16(0);							// reserved2
+			this.write32(0x76);							// imageDataOffset
+
+			this.write32(0x28);							// biSize
+			this.write32(width);						// biWidth
+			this.write32(-height);						// biHeight (negative, because we write top-to-bottom)
+			this.write16(1);							// biPlanes
+			this.write16(4);							// biBitCount
+			this.write32(0);							// biCompression (3 == 565 pixels (see mask below), 0 == 555 pixels)
+			this.write32((rowBytes * height) + 2);		// biSizeImage
+			this.write32(0x0b12);						// biXPelsPerMeter
+			this.write32(0x0b12);						// biYPelsPerMeter
+			this.write32(0);							// biClrUsed
+			this.write32(0);							// biClrImportant
+
+			for (let i = 0; i < 16; i++) {
+				let j = (i << 4) | 4;
+				this.file.write(j, j, j, 0);
+			}
+		}
+		else
+			throw new Error("unsupported depth");
 	}
 
 	send(pixels, offset = 0, count = pixels.byteLength - offset) {
-		let bytes = new Uint8Array(pixels);
-		count >>= 1;
-		while (count--) {
-			let pixel = bytes[offset++];
-			pixel |= bytes[offset++] << 8;
-
-			let r = (pixel >> 11);
-			let g = (pixel >> 6) & 0x1f;			// drop low bit (16 bit BMP is 555)
-			let b = pixel & 0x1f;
-
-			this.write16((r << 10) | (g << 5) | b);
+		if ((0 == offset) && (count == pixels.byteLength) && (pixels instanceof ArrayBuffer))		//@@ file.write should support HostBuffer
+			this.file.write(pixels);
+		else {
+			let bytes = new Uint8Array(pixels);
+			while (count--)
+				this.file.write(bytes[offset++]);
 		}
 	}
 	end() {
@@ -71,7 +115,7 @@ export default class BMPOut extends PixelsOut {
 		delete this.file;
 	}
 	pixelsToBytes(count) {
-		return count * 2;		//@@ vary on pixelFormat
+		return (count * this.depth) >> 3;		//@@ vary on pixelFormat - round up
 	}
 
 	write16(value) {
