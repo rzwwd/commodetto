@@ -411,7 +411,7 @@ void xs_poco_drawMasked(xsMachine *the)
 		mask.pixels = cb->bits.data;
 	else {
 		xsGet(xsVar(0), xsArg(7), ID(buffer));
-		bits.pixels = (PocoPixel *)(xsToArrayBuffer(xsVar(0)) + cb->bits.offset);
+		mask.pixels = (PocoPixel *)(xsToArrayBuffer(xsVar(0)) + cb->bits.offset);
 	}
 
 	mask_sx = xsToInteger(xsArg(8));
